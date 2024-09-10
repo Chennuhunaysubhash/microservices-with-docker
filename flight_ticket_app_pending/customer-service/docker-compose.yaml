@@ -1,0 +1,175 @@
+version: '3.8'
+
+services:
+  customer-server:
+    image: hunayhub97/customer-server
+    container_name: customer
+    ports:
+      - "8090:8090"
+    depends_on:
+      - service-reg
+      - postgres
+    networks:
+      - microservice-network
+      - postgres
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - EUREKA_CLIENT_SERVICEUL_DEFAULTZONE=http://service-reg:8761/eureka
+      - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT= http://host.docker.internal:9411/api/v2/spans
+      - ZIPKIN_WEB_ROOTURL= http://host.docker.internal:9411/api/v2/spans
+
+  flight-server:
+    image: hunayhub97/flight-server
+    container_name: flight
+    ports:
+      - "8091:8091"
+    depends_on:
+      - service-reg
+      - postgres
+    networks:
+      - microservice-network
+      - postgres
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - EUREKA_CLIENT_SERVICEUL_DEFAULTZONE=http://service-reg:8761/eureka
+      - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT= http://host.docker.internal:9411/api/v2/spans
+      - ZIPKIN_WEB_ROOTURL= http://host.docker.internal:9411/api/v2/spans
+
+  booking-server:
+    image: hunayhub97/booking-server
+    container_name: booking
+    ports:
+      - "8092:8092"
+    depends_on:
+      - service-reg
+      - postgres
+    networks:
+      - microservice-network
+      - postgres
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - EUREKA_CLIENT_SERVICEUL_DEFAULTZONE=http://service-reg:8761/eureka
+      - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/zipkin/
+      - ZIPKIN_WEB_ROOTURL=http://zipkin:9411/zipkin/
+
+  payment-server:
+    image: hunayhub97/payment-server
+    container_name: payment
+    ports:
+      - "8093:8093"
+    depends_on:
+      - service-reg
+      - postgres
+    networks:
+      - microservice-network
+      - postgres
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - EUREKA_CLIENT_SERVICEUL_DEFAULTZONE=http://service-reg:8761/eureka
+      - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/zipkin/
+      - ZIPKIN_WEB_ROOTURL=http://zipkin:9411/zipkin/
+
+
+  invoice-server:
+    image: hunayhub97/invoice-server
+    container_name: invoice
+    ports:
+      - "8094:8094"
+    depends_on:
+      - service-reg
+      - postgres
+    networks:
+      - microservice-network
+      - postgres
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - EUREKA_CLIENT_SERVICEUL_DEFAULTZONE=http://service-reg:8761/eureka
+      - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/zipkin/
+      - ZIPKIN_WEB_ROOTURL=http://zipkin:9411/zipkin/
+
+  service-reg:
+    image: hunayhub97/service-reg
+    container_name: service-reg
+    ports:
+      - "8761:8761"
+    depends_on:
+      - rabbitmq
+      - zipkin
+      - postgres
+      - pgadmin
+    networks:
+      - microservice-network
+      - postgres
+
+
+  gateway-service:
+    image: hunayhub97/gateway-service
+    container_name: gateway-service
+    ports:
+      - "9191:9191"
+    depends_on:
+      - service-reg
+    networks:
+      - microservice-network
+      - postgres
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/zipkin/
+      - ZIPKIN_WEB_ROOTURL=http://zipkin:9411/zipkin/
+
+  postgres:
+    container_name: postgres_container
+    image: postgres
+    environment:
+      POSTGRES_USER: hunay
+      POSTGRES_PASSWORD: root
+      PGDATA: /data/postgres
+    volumes:
+      - postgres:/data/postgres
+    ports:
+      - "5432:5432"
+    networks:
+      - postgres
+    restart: unless-stopped
+
+  pgadmin:
+    container_name: pgadmin_container
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL:   user@domain1.com
+      PGADMIN_DEFAULT_PASSWORD: pgadmin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    volumes:
+      - pgadmin:/var/lib/pgadmin
+    ports:
+      - "5050:80"
+    networks:
+      - postgres
+    restart: unless-stopped
+  zipkin:
+    image: openzipkin/zipkin
+    container_name: zipkin
+    ports:
+      - "9411:9411"
+    networks:
+      - postgres
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - postgres
+
+
+networks:
+  microservice-network:
+    driver: bridge
+  postgres:
+    driver: bridge
+
+volumes:
+  postgres:
+  pgadmin:
